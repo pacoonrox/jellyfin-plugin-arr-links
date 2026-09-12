@@ -1,0 +1,73 @@
+<div id="arrLinksConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="arrLinksConfigForm">
+                <div class="verticalSection">
+                    <h2>Arr Links</h2>
+                    <p>Configure the base URLs used by the Jellyfin Web context-menu shortcuts.</p>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="url" id="txtRadarrUrl" label="Radarr URL" />
+                    <div class="fieldDescription">Example: http://radarr:7878 or https://radarr.example.com</div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="url" id="txtSonarrUrl" label="Sonarr URL" />
+                    <div class="fieldDescription">Example: http://sonarr:8989 or https://sonarr.example.com</div>
+                </div>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkMovieRatings" />
+                        <span>Show movie ratings link</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkSeriesGraph" />
+                        <span>Show Series Graph link</span>
+                    </label>
+                </div>
+
+                <button is="emby-button" type="submit" class="raised button-submit block">
+                    <span>Save</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    <script>
+        (() => {
+            const pluginId = '9a926658-1d7d-4ee8-ae14-180528ea01ad';
+            const page = document.querySelector('#arrLinksConfigPage');
+            const form = page.querySelector('#arrLinksConfigForm');
+
+            page.addEventListener('pageshow', () => {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(config => {
+                    page.querySelector('#txtRadarrUrl').value = config.RadarrUrl || '';
+                    page.querySelector('#txtSonarrUrl').value = config.SonarrUrl || '';
+                    page.querySelector('#chkMovieRatings').checked = config.MovieRatingsEnabled !== false;
+                    page.querySelector('#chkSeriesGraph').checked = config.SeriesGraphEnabled !== false;
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(config => {
+                    config.RadarrUrl = page.querySelector('#txtRadarrUrl').value;
+                    config.SonarrUrl = page.querySelector('#txtSonarrUrl').value;
+                    config.MovieRatingsEnabled = page.querySelector('#chkMovieRatings').checked;
+                    config.SeriesGraphEnabled = page.querySelector('#chkSeriesGraph').checked;
+                    return ApiClient.updatePluginConfiguration(pluginId, config);
+                }).then(() => {
+                    Dashboard.processPluginConfigurationUpdateResult();
+                });
+            });
+        })();
+    </script>
+</div>
+

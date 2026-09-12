@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Jellyfin.Plugin.ArrLinks</AssemblyName>
+    <RootNamespace>Jellyfin.Plugin.ArrLinks</RootNamespace>
+    <Version>0.1.0</Version>
+    <Authors>pacoonrox</Authors>
+    <Description>Adds Radarr, Sonarr, Series Graph, and IMDb actions to Jellyfin Web media context menus.</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <EnableDefaultEmbeddedResourceItems>true</EnableDefaultEmbeddedResourceItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Common" Version="12.0.0-rc3" PrivateAssets="All" />
+    <PackageReference Include="Jellyfin.Controller" Version="12.0.0-rc3" PrivateAssets="All" />
+    <PackageReference Include="Jellyfin.Model" Version="12.0.0-rc3" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish plugin
+        run: dotnet publish src/Jellyfin.Plugin.ArrLinks/Jellyfin.Plugin.ArrLinks.csproj -c Release -o artifacts/plugin
+
+      - name: Package plugin
+        run: |
+          cd artifacts/plugin
+          zip -r ../Jellyfin.Plugin.ArrLinks.zip .
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/Jellyfin.Plugin.ArrLinks.zip
+          generate_release_notes: true
+

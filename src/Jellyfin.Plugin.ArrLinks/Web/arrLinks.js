@@ -301,10 +301,11 @@
 
                 const divider = document.createElement('div');
                 divider.className = 'actionsheetDivider arrlinks-action';
-                scroller.appendChild(divider);
+                const insertBefore = scroller.querySelector('.actionsheetDivider:not(.arrlinks-action)')?.nextSibling || scroller.firstChild;
+                scroller.insertBefore(divider, insertBefore);
 
                 actions.forEach(action => {
-                    scroller.appendChild(createActionButton(action, loadedItem));
+                    scroller.insertBefore(createActionButton(action, loadedItem), insertBefore);
                 });
             });
         });
@@ -330,6 +331,8 @@
         }
 
         state.patched = true;
+        document.documentElement.dataset.arrLinksPlugin = '0.1.6';
+        console.info('[Arr Links] Web actions loaded');
         document.addEventListener('contextmenu', event => rememberTarget(event.target), true);
         document.addEventListener('click', event => {
             const menuButton = event.target?.closest?.('[data-action="menu"], .btnCardOptions, .btnMoreCommands, .btnMore');

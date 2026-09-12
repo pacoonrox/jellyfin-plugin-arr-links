@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Jellyfin.Plugin.ArrLinks</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.ArrLinks</RootNamespace>
-    <Version>0.1.5</Version>
+    <Version>0.1.6</Version>
     <Authors>pacoonrox</Authors>
     <Description>Adds Radarr, Sonarr, Series Graph, and IMDb actions to Jellyfin Web media context menus.</Description>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

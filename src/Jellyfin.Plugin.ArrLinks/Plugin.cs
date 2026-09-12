@@ -43,7 +43,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         };
     }
 
-    public static string TransformIndexHtml(object request)
+    public static string TransformWebFile(object request)
     {
         string contents = GetTransformContents(request);
         if (contents.Contains("jellyfin-arr-links-plugin", StringComparison.Ordinal))
@@ -53,15 +53,14 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 
         string script = ReadEmbeddedResource("Jellyfin.Plugin.ArrLinks.Web.arrLinks.js")
             .Replace("__PLUGIN_ID__", PluginId.ToString("D"), StringComparison.Ordinal);
-        string tag = "<script id=\"jellyfin-arr-links-plugin\">" + script + "</script>";
-
-        int bodyIndex = contents.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
-        if (bodyIndex >= 0)
+        if (contents.Contains("</body>", StringComparison.OrdinalIgnoreCase))
         {
+            string tag = "<script id=\"jellyfin-arr-links-plugin\">" + script + "</script>";
+            int bodyIndex = contents.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
             return contents.Insert(bodyIndex, tag);
         }
 
-        return contents + tag;
+        return contents + Environment.NewLine + "/*! jellyfin-arr-links-plugin */" + Environment.NewLine + script;
     }
 
     private static string GetTransformContents(object request)
@@ -137,10 +136,10 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             string payloadJson = JsonSerializer.Serialize(new
             {
                 id = TransformId.ToString("D"),
-                fileNamePattern = "index\\.html$",
+                fileNamePattern = "(index\\.html|main\\.jellyfin\\.bundle\\.js)$",
                 callbackAssembly = typeof(Plugin).Assembly.FullName,
                 callbackClass = typeof(Plugin).FullName,
-                callbackMethod = nameof(TransformIndexHtml)
+                callbackMethod = nameof(TransformWebFile)
             });
             object? payload = parseMethod.Invoke(null, new object[] { payloadJson });
             if (payload is null)
@@ -150,7 +149,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             }
 
             registerMethod.Invoke(null, new[] { payload });
-            logger.LogInformation("[Arr Links] Registered index.html transformation with File Transformation plugin.");
+            logger.LogInformation("[Arr Links] Registered Jellyfin Web transformations with File Transformation plugin.");
             return true;
         }
         catch (Exception ex)

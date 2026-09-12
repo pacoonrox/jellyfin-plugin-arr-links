@@ -90,26 +90,32 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 
     private void RegisterFileTransformation()
     {
-        Assembly? fileTransformationAssembly = AssemblyLoadContext.All
-            .SelectMany(context => context.Assemblies)
-            .FirstOrDefault(assembly => assembly.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
-
-        Type? pluginInterfaceType = fileTransformationAssembly?.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
-        if (pluginInterfaceType is null)
+        try
         {
-            return;
+            Assembly? fileTransformationAssembly = AssemblyLoadContext.All
+                .SelectMany(context => context.Assemblies)
+                .FirstOrDefault(assembly => assembly.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
+
+            Type? pluginInterfaceType = fileTransformationAssembly?.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
+            if (pluginInterfaceType is null)
+            {
+                return;
+            }
+
+            object payload = new
+            {
+                id = TransformId,
+                fileNamePattern = "index\\.html$",
+                callbackAssembly = typeof(Plugin).Assembly.FullName,
+                callbackClass = typeof(Plugin).FullName,
+                callbackMethod = nameof(TransformIndexHtml)
+            };
+
+            pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new[] { payload });
         }
-
-        object payload = new
+        catch
         {
-            id = TransformId,
-            fileNamePattern = "index\\.html$",
-            callbackAssembly = typeof(Plugin).Assembly.FullName,
-            callbackClass = typeof(Plugin).FullName,
-            callbackMethod = nameof(TransformIndexHtml)
-        };
-
-        pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new[] { payload });
+            // The plugin should remain loadable even if File Transformation changes or is not installed.
+        }
     }
 }
-

@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text.Json;
 using Jellyfin.Plugin.ArrLinks.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -7,7 +8,6 @@ using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace Jellyfin.Plugin.ArrLinks;
 
@@ -43,7 +43,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         };
     }
 
-    public static string TransformIndexHtml(JObject request)
+    public static string TransformIndexHtml(object request)
     {
         string contents = GetTransformContents(request);
         if (contents.Contains("jellyfin-arr-links-plugin", StringComparison.Ordinal))
@@ -64,9 +64,28 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         return contents + tag;
     }
 
-    private static string GetTransformContents(JObject request)
+    private static string GetTransformContents(object request)
     {
-        return request.Value<string>("contents") ?? string.Empty;
+        MethodInfo? valueMethod = request.GetType()
+            .GetMethods()
+            .FirstOrDefault(method =>
+                method.Name == "Value"
+                && method.IsGenericMethodDefinition
+                && method.GetParameters().Length == 1);
+
+        if (valueMethod is not null)
+        {
+            object? value = valueMethod.MakeGenericMethod(typeof(string)).Invoke(request, new object[] { "contents" });
+            return value as string ?? string.Empty;
+        }
+
+        using JsonDocument document = JsonSerializer.SerializeToDocument(request);
+        if (document.RootElement.TryGetProperty("contents", out JsonElement contentsElement))
+        {
+            return contentsElement.GetString() ?? string.Empty;
+        }
+
+        return string.Empty;
     }
 
     private static string ReadEmbeddedResource(string resourceName)
@@ -97,18 +116,36 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 return false;
             }
 
-            JObject payload = new()
-            {
-                ["id"] = TransformId,
-                ["fileNamePattern"] = "index\\.html$",
-                ["callbackAssembly"] = typeof(Plugin).Assembly.FullName,
-                ["callbackClass"] = typeof(Plugin).FullName,
-                ["callbackMethod"] = nameof(TransformIndexHtml)
-            };
-
             if (pluginInterfaceType.GetMethod("RegisterTransformation") is not { } registerMethod)
             {
                 logger.LogWarning("[Arr Links] File Transformation registration method was not found; web injection was not registered.");
+                return false;
+            }
+
+            Type? jObjectType = AssemblyLoadContext.All
+                .SelectMany(context => context.Assemblies)
+                .Select(assembly => assembly.GetType("Newtonsoft.Json.Linq.JObject"))
+                .FirstOrDefault(type => type is not null);
+
+            MethodInfo? parseMethod = jObjectType?.GetMethod("Parse", BindingFlags.Public | BindingFlags.Static, new[] { typeof(string) });
+            if (parseMethod is null)
+            {
+                logger.LogWarning("[Arr Links] Newtonsoft JObject parser was not found; web injection was not registered.");
+                return false;
+            }
+
+            string payloadJson = JsonSerializer.Serialize(new
+            {
+                id = TransformId.ToString("D"),
+                fileNamePattern = "index\\.html$",
+                callbackAssembly = typeof(Plugin).Assembly.FullName,
+                callbackClass = typeof(Plugin).FullName,
+                callbackMethod = nameof(TransformIndexHtml)
+            });
+            object? payload = parseMethod.Invoke(null, new object[] { payloadJson });
+            if (payload is null)
+            {
+                logger.LogWarning("[Arr Links] File Transformation payload could not be created; web injection was not registered.");
                 return false;
             }
 

@@ -5,6 +5,7 @@
     const state = {
         config: null,
         itemCache: new Map(),
+        pendingItem: null,
         patched: false
     };
 
@@ -243,62 +244,83 @@
         return Promise.resolve();
     }
 
-    function ensureMenu() {
-        let menu = document.querySelector('.arrlinks-menu');
-        if (menu) {
-            return menu;
+    function closeActionSheet(button) {
+        const sheet = button.closest('.actionSheet');
+        sheet?.querySelector('.btnCloseActionSheet')?.click();
+    }
+
+    function createActionButton(action, item) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('is', 'emby-button');
+        button.className = 'listItem listItem-button actionSheetMenuItem arrlinks-action';
+        button.dataset.id = action.id;
+
+        const icon = document.createElement('span');
+        icon.className = `actionsheetMenuItemIcon listItemIcon listItemIcon-transparent material-icons ${action.icon}`;
+        icon.setAttribute('aria-hidden', 'true');
+
+        const body = document.createElement('div');
+        body.className = 'listItemBody actionsheetListItemBody';
+
+        const text = document.createElement('div');
+        text.className = 'listItemBodyText actionSheetItemText';
+        text.textContent = action.label;
+
+        body.appendChild(text);
+        button.appendChild(icon);
+        button.appendChild(body);
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            closeActionSheet(button);
+            handleAction(action.id, item);
+        }, true);
+
+        return button;
+    }
+
+    function injectIntoOpenSheets() {
+        const item = state.pendingItem;
+        if (!item) {
+            return;
         }
 
-        menu = document.createElement('div');
-        menu.className = 'arrlinks-menu';
-        menu.style.cssText = 'position:fixed;z-index:999999;min-width:13rem;background:#202020;color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 30px rgba(0,0,0,.45);border-radius:4px;padding:.35rem 0;font-family:inherit;';
-        document.body.appendChild(menu);
-        return menu;
-    }
+        document.querySelectorAll('.actionSheet').forEach(sheet => {
+            const scroller = sheet.querySelector('.actionSheetScroller');
+            if (!scroller || scroller.querySelector('.arrlinks-action')) {
+                return;
+            }
 
-    function hideMenu() {
-        document.querySelector('.arrlinks-menu')?.remove();
-    }
+            Promise.all([loadConfig(), Promise.resolve(item)]).then(([config, loadedItem]) => {
+                const actions = buildActions(loadedItem, config);
+                if (!actions.length || scroller.querySelector('.arrlinks-action')) {
+                    return;
+                }
 
-    function showMenu(event, item, actions) {
-        const menu = ensureMenu();
-        menu.innerHTML = '';
-        for (const action of actions) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.textContent = action.label;
-            button.dataset.action = action.id;
-            button.style.cssText = 'display:block;width:100%;padding:.75rem 1rem;background:transparent;border:0;color:inherit;text-align:left;font:inherit;cursor:pointer;';
-            button.addEventListener('mouseenter', () => { button.style.background = 'rgba(255,255,255,.1)'; });
-            button.addEventListener('mouseleave', () => { button.style.background = 'transparent'; });
-            button.addEventListener('click', () => {
-                hideMenu();
-                handleAction(action.id, item);
+                const divider = document.createElement('div');
+                divider.className = 'actionsheetDivider arrlinks-action';
+                scroller.appendChild(divider);
+
+                actions.forEach(action => {
+                    scroller.appendChild(createActionButton(action, loadedItem));
+                });
             });
-            menu.appendChild(button);
-        }
-
-        menu.style.left = `${Math.min(event.clientX, window.innerWidth - 230)}px`;
-        menu.style.top = `${Math.min(event.clientY, window.innerHeight - (actions.length * 48 + 16))}px`;
+        });
     }
 
-    function onContextMenu(event) {
-        const itemId = getItemIdFromElement(event.target);
+    function rememberTarget(target) {
+        const itemId = getItemIdFromElement(target);
         if (!itemId) {
             return;
         }
 
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-
-        Promise.all([loadConfig(), loadItemById(itemId)]).then(([config, item]) => {
-            const actions = buildActions(item, config);
-            if (!actions.length) {
-                return;
+        loadItemById(itemId).then(item => {
+            if (item) {
+                state.pendingItem = item;
+                injectIntoOpenSheets();
             }
-
-            showMenu(event, item, actions);
         });
     }
 
@@ -308,9 +330,15 @@
         }
 
         state.patched = true;
-        document.addEventListener('contextmenu', onContextMenu, true);
-        document.addEventListener('click', hideMenu, true);
-        document.addEventListener('scroll', hideMenu, true);
+        document.addEventListener('contextmenu', event => rememberTarget(event.target), true);
+        document.addEventListener('click', event => {
+            const menuButton = event.target?.closest?.('[data-action="menu"], .btnCardOptions, .btnMoreCommands, .btnMore');
+            if (menuButton) {
+                rememberTarget(menuButton);
+            }
+        }, true);
+
+        new MutationObserver(injectIntoOpenSheets).observe(document.body, { childList: true, subtree: true });
     }
 
     if (document.readyState === 'loading') {

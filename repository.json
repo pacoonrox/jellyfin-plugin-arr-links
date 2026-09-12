@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.1.6.0",
+        "changelog": "Inject Arr Links through both index.html and main.jellyfin.bundle.js, place actions near the top of Jellyfin menus, and add a browser-side diagnostic marker.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/pacoonrox/jellyfin-plugin-arr-links/releases/download/v0.1.6/Jellyfin.Plugin.ArrLinks.v0.1.6.zip",
+        "checksum": "7634d880cf8a3ad7fb15c69a60a3d8a4",
+        "timestamp": "2026-09-12T06:12:00Z"
+      },
+      {
         "version": "0.1.5.0",
         "changelog": "Remove the direct Newtonsoft dependency and append Arr Links actions into Jellyfin Web action sheets instead of replacing the native menu.",
         "targetAbi": "12.0.0.0",

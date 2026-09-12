@@ -7,6 +7,7 @@ using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.ArrLinks;
 
@@ -19,7 +20,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
-        RegisterFileTransformation();
     }
 
     public static Plugin? Instance { get; private set; }
@@ -88,7 +88,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         return reader.ReadToEnd();
     }
 
-    private void RegisterFileTransformation()
+    internal static bool RegisterFileTransformation(ILogger logger)
     {
         try
         {
@@ -99,7 +99,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             Type? pluginInterfaceType = fileTransformationAssembly?.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
             if (pluginInterfaceType is null)
             {
-                return;
+                logger.LogWarning("[Arr Links] File Transformation plugin interface was not found; web injection was not registered.");
+                return false;
             }
 
             object payload = new
@@ -111,11 +112,20 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 callbackMethod = nameof(TransformIndexHtml)
             };
 
-            pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new[] { payload });
+            if (pluginInterfaceType.GetMethod("RegisterTransformation") is not { } registerMethod)
+            {
+                logger.LogWarning("[Arr Links] File Transformation registration method was not found; web injection was not registered.");
+                return false;
+            }
+
+            registerMethod.Invoke(null, new[] { payload });
+            logger.LogInformation("[Arr Links] Registered index.html transformation with File Transformation plugin.");
+            return true;
         }
-        catch
+        catch (Exception ex)
         {
-            // The plugin should remain loadable even if File Transformation changes or is not installed.
+            logger.LogError(ex, "[Arr Links] Failed to register File Transformation web injection.");
+            return false;
         }
     }
 }

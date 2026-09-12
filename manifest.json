@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.1.2.0",
+        "changelog": "Move File Transformation registration to a startup task so the plugin loads cleanly before web injection is registered.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/pacoonrox/jellyfin-plugin-arr-links/releases/download/v0.1.2/Jellyfin.Plugin.ArrLinks.zip",
+        "checksum": "bde7f49998d4b4c38c23ddeab58c791f",
+        "timestamp": "2026-09-12T05:55:00Z"
+      },
+      {
         "version": "0.1.1.0",
         "changelog": "Prevent File Transformation registration failures from marking the plugin as malfunctioned.",
         "targetAbi": "12.0.0.0",

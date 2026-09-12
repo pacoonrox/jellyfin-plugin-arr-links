@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Jellyfin.Plugin.ArrLinks</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.ArrLinks</RootNamespace>
-    <Version>0.1.3</Version>
+    <Version>0.1.4</Version>
     <Authors>pacoonrox</Authors>
     <Description>Adds Radarr, Sonarr, Series Graph, and IMDb actions to Jellyfin Web media context menus.</Description>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
@@ -17,5 +17,11 @@
     <PackageReference Include="Jellyfin.Common" Version="12.0.0-rc3" PrivateAssets="All" />
     <PackageReference Include="Jellyfin.Controller" Version="12.0.0-rc3" PrivateAssets="All" />
     <PackageReference Include="Jellyfin.Model" Version="12.0.0-rc3" PrivateAssets="All" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Web/configPage.html" />
+    <EmbeddedResource Include="Web/arrLinks.js" />
   </ItemGroup>
 </Project>

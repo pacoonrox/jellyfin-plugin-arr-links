@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text.Json;
 using Jellyfin.Plugin.ArrLinks.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -8,6 +7,7 @@ using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace Jellyfin.Plugin.ArrLinks;
 
@@ -43,7 +43,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         };
     }
 
-    public static string TransformIndexHtml(object request)
+    public static string TransformIndexHtml(JObject request)
     {
         string contents = GetTransformContents(request);
         if (contents.Contains("jellyfin-arr-links-plugin", StringComparison.Ordinal))
@@ -64,15 +64,9 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         return contents + tag;
     }
 
-    private static string GetTransformContents(object request)
+    private static string GetTransformContents(JObject request)
     {
-        using JsonDocument document = JsonSerializer.SerializeToDocument(request);
-        if (document.RootElement.TryGetProperty("contents", out JsonElement contentsElement))
-        {
-            return contentsElement.GetString() ?? string.Empty;
-        }
-
-        return string.Empty;
+        return request.Value<string>("contents") ?? string.Empty;
     }
 
     private static string ReadEmbeddedResource(string resourceName)
@@ -103,13 +97,13 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 return false;
             }
 
-            object payload = new
+            JObject payload = new()
             {
-                id = TransformId,
-                fileNamePattern = "index\\.html$",
-                callbackAssembly = typeof(Plugin).Assembly.FullName,
-                callbackClass = typeof(Plugin).FullName,
-                callbackMethod = nameof(TransformIndexHtml)
+                ["id"] = TransformId,
+                ["fileNamePattern"] = "index\\.html$",
+                ["callbackAssembly"] = typeof(Plugin).Assembly.FullName,
+                ["callbackClass"] = typeof(Plugin).FullName,
+                ["callbackMethod"] = nameof(TransformIndexHtml)
             };
 
             if (pluginInterfaceType.GetMethod("RegisterTransformation") is not { } registerMethod)

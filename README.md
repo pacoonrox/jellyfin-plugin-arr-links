@@ -29,7 +29,7 @@ https://www.iamparadox.dev/jellyfin/plugins/manifest.json
 2. Add this repository to Jellyfin:
 
 ```text
-https://raw.githubusercontent.com/pacoonrox/jellyfin-plugin-arr-links/master/manifest.json
+https://raw.githubusercontent.com/pacoonrox/jellyfin-plugin-arr-links/master/repository.json
 ```
 
 3. Install **Arr Links** from the plugin catalog.
